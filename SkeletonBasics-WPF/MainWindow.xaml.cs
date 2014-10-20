@@ -57,9 +57,10 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         private readonly Brush inferredJointBrush = Brushes.Yellow;
 
         /// <summary>
-        /// Pen used for drawing bones that are currently tracked
+        /// Objetos pen para dibujar el esqueleto 
         /// </summary>
-        private readonly Pen trackedBonePen = new Pen(Brushes.Green, 6);
+        private readonly Pen trackedBonePenVerde = new Pen(Brushes.Green, 6);
+        private readonly Pen trackedBonePenRojo = new Pen(Brushes.Red, 6);
 
         /// <summary>
         /// Pen used for drawing bones that are currently inferred
@@ -81,6 +82,8 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         /// </summary>
         private DrawingImage imageSource;
 
+        /// Variable global que indica si la postura actual es la correcta
+        bool posturaCorrecta = false;
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
@@ -246,13 +249,32 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             }
         }
 
+        private bool EsPosturaCorrecta(Skeleton skeleton) {
+            float angulo_pierna_derecha = 45; // Ángulo que debe formar la pierna levantada con respecto al eje z
+            bool brazo_izquierdo = skeleton.Joints[JointType.ElbowLeft].Position.Z >= skeleton.Joints[JointType.ShoulderLeft].Position.Z;
+            bool brazo_derecha = skeleton.Joints[JointType.ElbowRight].Position.Z >= skeleton.Joints[JointType.ShoulderRight].Position.Z;
+            float proporcion_piernas = skeleton.Joints[JointType.AnkleLeft].Position.Z / skeleton.Joints[JointType.AnkleRight].Position.Z;
+            bool pierna_derecha = (proporcion_piernas * 90) > angulo_pierna_derecha;
+            return brazo_izquierdo && brazo_izquierdo && pierna_derecha;
+        }
         /// <summary>
         /// Draws a skeleton's bones and joints
         /// </summary>
         /// <param name="skeleton">skeleton to draw</param>
         /// <param name="drawingContext">drawing context to draw to</param>
+        /// 
         private void DrawBonesAndJoints(Skeleton skeleton, DrawingContext drawingContext)
         {
+            // Comprueba si la postura es la correcta y actualiza la variable posturaCorrecta
+            //posturaCorrecta
+            if (EsPosturaCorrecta(skeleton)){
+                posturaCorrecta = true;
+            }
+            else
+            {
+                posturaCorrecta = false;
+            }
+
             // Render Torso
             this.DrawBone(skeleton, drawingContext, JointType.Head, JointType.ShoulderCenter);
             this.DrawBone(skeleton, drawingContext, JointType.ShoulderCenter, JointType.ShoulderLeft);
@@ -346,11 +368,19 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             Pen drawPen = this.inferredBonePen;
             if (joint0.TrackingState == JointTrackingState.Tracked && joint1.TrackingState == JointTrackingState.Tracked)
             {
-                drawPen = this.trackedBonePen;
+                // Si la postura es la correcta, el esqueleto queda dibujado en verde
+                // En otro caso, en rojo
+                if (posturaCorrecta)
+                    drawPen = this.trackedBonePenVerde;
+            
+                else
+                    drawPen = this.trackedBonePenRojo;
             }
 
             drawingContext.DrawLine(drawPen, this.SkeletonPointToScreen(joint0.Position), this.SkeletonPointToScreen(joint1.Position));
         }
+
+        private bool PosturaCorrecta;
 
         /// <summary>
         /// Handles the checking or unchecking of the seated mode combo box
