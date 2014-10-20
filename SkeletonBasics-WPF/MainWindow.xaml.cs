@@ -250,11 +250,19 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         }
 
         private bool EsPosturaCorrecta(Skeleton skeleton) {
-            float angulo_pierna_derecha = 45; // Ángulo que debe formar la pierna levantada con respecto al eje z
-            bool brazo_izquierdo = skeleton.Joints[JointType.ElbowLeft].Position.Z >= skeleton.Joints[JointType.ShoulderLeft].Position.Z;
-            bool brazo_derecha = skeleton.Joints[JointType.ElbowRight].Position.Z >= skeleton.Joints[JointType.ShoulderRight].Position.Z;
-            float proporcion_piernas = skeleton.Joints[JointType.AnkleLeft].Position.Z / skeleton.Joints[JointType.AnkleRight].Position.Z;
-            bool pierna_derecha = (proporcion_piernas * 90) > angulo_pierna_derecha;
+            float angulo = 60; // Ángulo que debe formar la pierna levantada con respecto al eje z
+            bool brazo_izquierdo = (skeleton.Joints[JointType.ElbowLeft].Position.Y >= skeleton.Joints[JointType.ShoulderLeft].Position.Y) &&
+                                    (skeleton.Joints[JointType.WristLeft].Position.Y >= skeleton.Joints[JointType.ShoulderLeft].Position.Y) &&
+                                    (skeleton.Joints[JointType.WristLeft].Position.Y < skeleton.Joints[JointType.Head].Position.Y);
+            bool brazo_derecha = (skeleton.Joints[JointType.ElbowRight].Position.Y >= skeleton.Joints[JointType.ShoulderRight].Position.Y) &&
+                                  (skeleton.Joints[JointType.WristRight].Position.Y >= skeleton.Joints[JointType.ShoulderRight].Position.Y) &&
+                                  (skeleton.Joints[JointType.WristRight].Position.Y < skeleton.Joints[JointType.Head].Position.Y);
+            double dy_pierna_izquierda = System.Math.Abs(skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y);
+            double dz_tobillos = System.Math.Abs(skeleton.Joints[JointType.AnkleLeft].Position.Z - skeleton.Joints[JointType.AnkleRight].Position.Z);
+            bool pierna_derecha = false;
+            if (((dz_tobillos * 90) / dy_pierna_izquierda) > angulo)
+                pierna_derecha = true; 
+            System.Console.WriteLine("angulo formado {0}, bs {1}, p {2}",(dz_tobillos * 90) / dy_pierna_izquierda, brazo_derecha && brazo_izquierdo, pierna_derecha) ;
             return brazo_izquierdo && brazo_izquierdo && pierna_derecha;
         }
         /// <summary>
