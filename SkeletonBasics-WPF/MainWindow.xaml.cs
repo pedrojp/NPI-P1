@@ -49,7 +49,11 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         /// <summary>
         /// Brush used for drawing joints that are currently tracked
         /// </summary>
-        private readonly Brush trackedJointBrush = new SolidColorBrush(Color.FromArgb(255, 68, 192, 68));
+        private readonly Brush trackedJointBrushVerde = Brushes.Green;
+        private readonly Brush trackedJointAmarillo = Brushes.Yellow;
+        private readonly Brush trackedJointTurquesa = Brushes.Turquoise;
+
+
 
         /// <summary>
         /// Brush used for drawing joints that are currently inferred
@@ -82,8 +86,10 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         /// </summary>
         private DrawingImage imageSource;
 
-        /// Variable global que indica si la postura actual es la correcta
-        bool posturaCorrecta = false;
+        /// Variables globales que controlan si las posturas son correctas
+        bool posturaBICorrecta = false;
+        bool posturaBDCorrecta = false;
+        bool posturaPDCorrecta = false;
 
         /// Variable global que controla el ángulo en el que hay que levantar la pierna
         double angulo = 20;
@@ -253,22 +259,32 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             }
         }
 
-        private bool EsPosturaCorrecta(Skeleton skeleton) {
-         
-            bool brazo_izquierdo = (skeleton.Joints[JointType.ElbowLeft].Position.Y >= skeleton.Joints[JointType.ShoulderLeft].Position.Y) &&
+        private bool BrazoIzquierdoCorrecto(Skeleton skeleton) {
+            // Si el brazo derecho se encuentra por encima de la cabeza
+            return (skeleton.Joints[JointType.ElbowLeft].Position.Y >= skeleton.Joints[JointType.ShoulderLeft].Position.Y) &&
                                     (skeleton.Joints[JointType.WristLeft].Position.Y >= skeleton.Joints[JointType.ShoulderLeft].Position.Y) &&
                                     (skeleton.Joints[JointType.WristLeft].Position.Y < skeleton.Joints[JointType.Head].Position.Y);
-            bool brazo_derecha = (skeleton.Joints[JointType.ElbowRight].Position.Y >= skeleton.Joints[JointType.ShoulderRight].Position.Y) &&
+        }
+
+        private bool BrazoDerechoCorrecto(Skeleton skeleton) {
+            // Si el brazo izquierdo se encuentra por encima de la cabeza
+            return (skeleton.Joints[JointType.ElbowRight].Position.Y >= skeleton.Joints[JointType.ShoulderRight].Position.Y) &&
                                   (skeleton.Joints[JointType.WristRight].Position.Y >= skeleton.Joints[JointType.ShoulderRight].Position.Y) &&
                                   (skeleton.Joints[JointType.WristRight].Position.Y < skeleton.Joints[JointType.Head].Position.Y);
-            double dy_pierna_izquierda = System.Math.Abs(skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y);
-            double dz_tobillos = System.Math.Abs(skeleton.Joints[JointType.AnkleLeft].Position.Z - skeleton.Joints[JointType.AnkleRight].Position.Z);
-            bool pierna_derecha = false;
-            if ((((dz_tobillos * 90) / dy_pierna_izquierda) > angulo-margen_angulo) && ( ((dz_tobillos * 90) / dy_pierna_izquierda) < angulo+margen_angulo) )
-                pierna_derecha = true; 
-            System.Console.WriteLine("angulo formado {0}, bs {1}, p {2}",(dz_tobillos * 90) / dy_pierna_izquierda, brazo_derecha && brazo_izquierdo, pierna_derecha) ;
-            return brazo_izquierdo && brazo_izquierdo && pierna_derecha;
         }
+
+        private bool PiernaDerechaCorrecta(Skeleton skeleton) {
+            // Longitud en y de la pierna izquierda
+            double dy_pierna_izquierda = System.Math.Abs(skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y);
+            
+            // Longitud en z entre los tobillos
+            double dz_tobillos = System.Math.Abs(skeleton.Joints[JointType.AnkleLeft].Position.Z - skeleton.Joints[JointType.AnkleRight].Position.Z);
+            
+            // En el caso de que se forme un ángulo que se tome como correcto con la pierna derecha, devuelve true
+            return ((((dz_tobillos * 90) / dy_pierna_izquierda) > angulo - margen_angulo) && (((dz_tobillos * 90) / dy_pierna_izquierda) < angulo + margen_angulo));
+        }
+
+
         /// <summary>
         /// Draws a skeleton's bones and joints
         /// </summary>
@@ -277,15 +293,25 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         /// 
         private void DrawBonesAndJoints(Skeleton skeleton, DrawingContext drawingContext)
         {
-            // Comprueba si la postura es la correcta y actualiza la variable posturaCorrecta
-            //posturaCorrecta
-            if (EsPosturaCorrecta(skeleton)){
-                posturaCorrecta = true;
-            }
-            else
-            {
-                posturaCorrecta = false;
-            }
+
+            // Longitud en y de la pierna izquierda
+            double dy_pierna_izquierda = System.Math.Abs(skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y);
+
+            // Longitud en z entre los tobillos
+            double dz_tobillos = System.Math.Abs(skeleton.Joints[JointType.AnkleLeft].Position.Z - skeleton.Joints[JointType.AnkleRight].Position.Z);
+
+
+            // Comprueba si la postura de los distintos miembros es correcta y se actualizan las variables
+            if (BrazoDerechoCorrecto(skeleton)) posturaBDCorrecta = true;
+            else posturaBDCorrecta = false;
+
+            if (BrazoIzquierdoCorrecto(skeleton)) posturaBICorrecta = true;
+            else posturaBICorrecta = false;
+
+            if (PiernaDerechaCorrecta(skeleton)) posturaPDCorrecta = true;
+            else posturaPDCorrecta = false;
+
+
 
             // Render Torso
             this.DrawBone(skeleton, drawingContext, JointType.Head, JointType.ShoulderCenter);
@@ -315,7 +341,7 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             this.DrawBone(skeleton, drawingContext, JointType.HipRight, JointType.KneeRight);
             this.DrawBone(skeleton, drawingContext, JointType.KneeRight, JointType.AnkleRight);
             this.DrawBone(skeleton, drawingContext, JointType.AnkleRight, JointType.FootRight);
- 
+
             // Render Joints
             foreach (Joint joint in skeleton.Joints)
             {
@@ -323,11 +349,65 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
 
                 if (joint.TrackingState == JointTrackingState.Tracked)
                 {
-                    drawBrush = this.trackedJointBrush;                    
+
+                    // Se comprueba si el punto pertenece al brazo izquierdo
+                    if (joint.JointType.Equals(JointType.ElbowLeft) || joint.JointType.Equals(JointType.WristLeft) || joint.JointType.Equals(JointType.HandLeft))
+                    {
+                        // Si la postura está correcta o es el hombro, se colorea de verde
+                        if (posturaBICorrecta || joint.JointType.Equals(JointType.ShoulderLeft)) drawBrush = this.trackedJointBrushVerde;
+
+                        // En otro caso
+                        else
+                        {
+                            // Si está por debajo de la cabeza
+                            if (skeleton.Joints[JointType.WristLeft].Position.Y < skeleton.Joints[JointType.Head].Position.Y) drawBrush = this.trackedJointAmarillo;
+                            // en otro caso
+                            else drawBrush = this.trackedJointTurquesa;
+                        }
+
+                    }
+
+                    // Si está en el brazo derecho
+
+                    else if (joint.JointType.Equals(JointType.ElbowRight) || joint.JointType.Equals(JointType.WristRight) || joint.JointType.Equals(JointType.HandRight))
+                    {
+                        // Si la postura está correcta o es el hombro, se colorea de verde
+                        if (posturaBDCorrecta || joint.JointType.Equals(JointType.ShoulderRight)) drawBrush = this.trackedJointBrushVerde;
+
+                        // En otro caso
+                        else
+                        {
+                            // Si está por debajo de la cabeza
+                            if (skeleton.Joints[JointType.WristRight].Position.Y < skeleton.Joints[JointType.Head].Position.Y) drawBrush = this.trackedJointAmarillo;
+                            // en otro caso
+                            else drawBrush = this.trackedJointTurquesa;
+                        }
+
+                    }
+
+                    // En el caso de que se trate de la pierna derecha
+                    else if (joint.JointType.Equals(JointType.HipRight) || joint.JointType.Equals(JointType.KneeRight) || joint.JointType.Equals(JointType.AnkleRight) || joint.JointType.Equals(JointType.FootRight)) {
+                        // Si la postura es correcta o la cadera, se colorea de verde
+                        if (posturaPDCorrecta || joint.JointType.Equals(JointType.HipRight)) drawBrush = this.trackedJointBrushVerde;
+
+                        // En otro caso
+                        else { 
+                            // Si no se ha llegado al número indicado de grados
+                            System.Console.WriteLine("{0} < {1}",((dz_tobillos * 90) / dy_pierna_izquierda), angulo + margen_angulo);
+                            if (((dz_tobillos * 90) / dy_pierna_izquierda) < (angulo + margen_angulo)) drawBrush = this.trackedJointAmarillo;
+
+                            // En otro caso
+                            else drawBrush = this.trackedJointTurquesa;
+
+                        }
+                    }
+
+                    else drawBrush = this.trackedJointBrushVerde;
                 }
+
                 else if (joint.TrackingState == JointTrackingState.Inferred)
                 {
-                    drawBrush = this.inferredJointBrush;                    
+                    drawBrush = this.inferredJointBrush;
                 }
 
                 if (drawBrush != null)
@@ -336,6 +416,7 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
                 }
             }
         }
+        
 
         /// <summary>
         /// Maps a SkeletonPoint to lie within our render space and converts to Point
@@ -378,15 +459,18 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
 
             // We assume all drawn bones are inferred unless BOTH joints are tracked
             Pen drawPen = this.inferredBonePen;
-            if (joint0.TrackingState == JointTrackingState.Tracked && joint1.TrackingState == JointTrackingState.Tracked)
-            {
-                // Si la postura es la correcta, el esqueleto queda dibujado en verde
-                // En otro caso, en rojo
-                if (posturaCorrecta)
-                    drawPen = this.trackedBonePenVerde;
+            if (joint0.TrackingState == JointTrackingState.Tracked && joint1.TrackingState == JointTrackingState.Tracked){
+                // Si el primer punto que forma parte del hueso pertenece a unos de los miembros que pueden estar en posturas incorrectas
+                // y además la postura es incorrecta, cambiar el objeto drawPen de color
+                if (((joint0.Equals(skeleton.Joints[JointType.ShoulderLeft]) || joint0.Equals(skeleton.Joints[JointType.ElbowLeft]) || joint0.Equals(skeleton.Joints[JointType.WristLeft])) && !posturaBICorrecta) 
+                    ||
+                    ((joint0.Equals(skeleton.Joints[JointType.ShoulderRight]) ||  joint0.Equals(skeleton.Joints[JointType.ElbowRight]) || joint0.Equals(skeleton.Joints[JointType.WristRight])) && !posturaBDCorrecta)
+                    ||
+                    ((joint0.Equals(skeleton.Joints[JointType.HipRight]) || joint0.Equals(skeleton.Joints[JointType.KneeRight]) || joint0.Equals(skeleton.Joints[JointType.AnkleRight])) && !posturaPDCorrecta ))
+                        drawPen = this.trackedBonePenRojo;
             
                 else
-                    drawPen = this.trackedBonePenRojo;
+                        drawPen = this.trackedBonePenVerde;
             }
 
             drawingContext.DrawLine(drawPen, this.SkeletonPointToScreen(joint0.Position), this.SkeletonPointToScreen(joint1.Position));
