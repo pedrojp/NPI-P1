@@ -84,6 +84,10 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
 
         /// Variable global que indica si la postura actual es la correcta
         bool posturaCorrecta = false;
+
+        /// Variable global que controla el ángulo en el que hay que levantar la pierna
+        double angulo = 20;
+        double margen_angulo = 5;
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
@@ -250,7 +254,7 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         }
 
         private bool EsPosturaCorrecta(Skeleton skeleton) {
-            float angulo = 60; // Ángulo que debe formar la pierna levantada con respecto al eje z
+         
             bool brazo_izquierdo = (skeleton.Joints[JointType.ElbowLeft].Position.Y >= skeleton.Joints[JointType.ShoulderLeft].Position.Y) &&
                                     (skeleton.Joints[JointType.WristLeft].Position.Y >= skeleton.Joints[JointType.ShoulderLeft].Position.Y) &&
                                     (skeleton.Joints[JointType.WristLeft].Position.Y < skeleton.Joints[JointType.Head].Position.Y);
@@ -260,7 +264,7 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             double dy_pierna_izquierda = System.Math.Abs(skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y);
             double dz_tobillos = System.Math.Abs(skeleton.Joints[JointType.AnkleLeft].Position.Z - skeleton.Joints[JointType.AnkleRight].Position.Z);
             bool pierna_derecha = false;
-            if (((dz_tobillos * 90) / dy_pierna_izquierda) > angulo)
+            if ((((dz_tobillos * 90) / dy_pierna_izquierda) > angulo-margen_angulo) && ( ((dz_tobillos * 90) / dy_pierna_izquierda) < angulo+margen_angulo) )
                 pierna_derecha = true; 
             System.Console.WriteLine("angulo formado {0}, bs {1}, p {2}",(dz_tobillos * 90) / dy_pierna_izquierda, brazo_derecha && brazo_izquierdo, pierna_derecha) ;
             return brazo_izquierdo && brazo_izquierdo && pierna_derecha;
@@ -388,8 +392,6 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             drawingContext.DrawLine(drawPen, this.SkeletonPointToScreen(joint0.Position), this.SkeletonPointToScreen(joint1.Position));
         }
 
-        private bool PosturaCorrecta;
-
         /// <summary>
         /// Handles the checking or unchecking of the seated mode combo box
         /// </summary>
@@ -399,15 +401,20 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
         {
             if (null != this.sensor)
             {
-                if (this.checkBoxSeatedMode.IsChecked.GetValueOrDefault())
-                {
-                    this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
-                }
-                else
-                {
-                    this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Default;
-                }
+                this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Default;
+                
             }
+        }
+
+        private void Click_en_boton(object sender, RoutedEventArgs e)
+        {
+            angulo = System.Convert.ToDouble(inputAngulo.Text);
+            angulo = angulo % 180;
+        }
+
+        private void inputAngulo_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+
         }
     }
 }
